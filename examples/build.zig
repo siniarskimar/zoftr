@@ -12,9 +12,11 @@ pub fn build(b: *std.Build) void {
 
     const shapes_exe = b.addExecutable(.{
         .name = "example-shapes",
-        .root_source_file = b.path("shapes/main.zig"),
-        .target = target,
-        .optimize = optimize,
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("shapes/main.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
     });
     shapes_exe.root_module.addImport("zoftr", zoftr_mod);
     b.installArtifact(shapes_exe);
