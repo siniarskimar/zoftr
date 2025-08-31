@@ -51,8 +51,8 @@ pub fn typeInfoMat(T: type) struct {
 
 /// Compute dot product of vectors.
 /// Adapts to whether a vector is @Vector or an array based on type.
-pub fn vecDot(T: type, a: T, b: T) typeInfoVec(T).child {
-    const vec_typeinfo = typeInfoVec(T);
+pub fn vecDot(a: anytype, b: @TypeOf(a)) typeInfoVec(@TypeOf(a)).child {
+    const vec_typeinfo = typeInfoVec(@TypeOf(a));
     if (vec_typeinfo.is_simd) {
         return @reduce(.Add, a * b);
     }
@@ -76,16 +76,16 @@ pub fn vec3Cross(S: type, a: [3]S, b: [3]S) [3]Scalar(S) {
 }
 
 /// Get vector magnitude (length) squared.
-pub fn vecMagSquared(T: type, a: T) typeInfoVec(T).child {
-    return vecDot(T, a, a);
+pub fn vecMagSquared(a: anytype) typeInfoVec(@TypeOf(a)).child {
+    return vecDot(a, a);
 }
 
 /// Get unit vector from vector `a`
-pub fn vecUnit(T: type, a: T) T {
-    const typeinfo = typeInfoVec(T);
+pub fn vecUnit(a: anytype) @TypeOf(a) {
+    const typeinfo = typeInfoVec(@TypeOf(a));
     const V = @Vector(typeinfo.N, typeinfo.child);
     const v: V = a;
-    return v / @as(V, @splat(@sqrt(vecMagSquared(V, a))));
+    return v / @as(V, @splat(@sqrt(vecMagSquared(a))));
 }
 
 /// Get a unit vector from angle in radians
@@ -165,30 +165,30 @@ test vecDot {
     const tolerance = std.math.floatEps(f32);
     try std.testing.expectApproxEqAbs(
         1,
-        vecDot([2]f32, .{ 1, 0 }, .{ 1, 0 }),
+        vecDot([2]f32{ 1, 0 }, [2]f32{ 1, 0 }),
         tolerance,
     );
     try std.testing.expectApproxEqAbs(
         0,
-        vecDot([2]f32, .{ 0, 1 }, .{ 1, 0 }),
+        vecDot([2]f32{ 0, 1 }, [2]f32{ 1, 0 }),
         tolerance,
     );
     try std.testing.expectApproxEqAbs(
         -1,
-        vecDot([2]f32, .{ -1, 0 }, .{ 1, 0 }),
+        vecDot([2]f32{ -1, 0 }, [2]f32{ 1, 0 }),
         tolerance,
     );
 
     try std.testing.expectApproxEqAbs(
         0.707106781187,
-        vecDot([2]f32, .{ 1, 0 }, .{ 0.707106781187, 0.707106781187 }),
+        vecDot([2]f32{ 1, 0 }, [2]f32{ 0.707106781187, 0.707106781187 }),
         tolerance,
     );
 
     // Test SIMD
     try std.testing.expectApproxEqAbs(
         0.707106781187,
-        vecDot(@Vector(2, f32), .{ 1, 0 }, .{ 0.707106781187, 0.707106781187 }),
+        vecDot(@Vector(2, f32){ 1, 0 }, @Vector(2, f32){ 0.707106781187, 0.707106781187 }),
         tolerance,
     );
 }
