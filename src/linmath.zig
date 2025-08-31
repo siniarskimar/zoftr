@@ -141,6 +141,17 @@ pub fn expectSlicesApproxEqual(
     return error.TestExpectedEqual;
 }
 
+test vecMagSquared {
+    // const tolerance = std.math.floatEps(f32);
+
+    try std.testing.expectEqual(1.0, vecMagSquared([_]f32{ 0, 1 }));
+    try std.testing.expectEqual(1.0, vecMagSquared([_]f32{ 1, 0 }));
+    try std.testing.expectEqual(1.0, vecMagSquared([_]f32{ -1, 0 }));
+    try std.testing.expectEqual(1.0, vecMagSquared([_]f32{ 0, -1 }));
+
+    try std.testing.expectEqual(8.0, vecMagSquared([_]f32{ 2, 2 }));
+}
+
 test vec2Dir {
     // Casting a wide net since precision depends on the environment the test is in
     const tolerance = 0.000001;
@@ -189,6 +200,26 @@ test vecDot {
     try std.testing.expectApproxEqAbs(
         0.707106781187,
         vecDot(@Vector(2, f32){ 1, 0 }, @Vector(2, f32){ 0.707106781187, 0.707106781187 }),
+        tolerance,
+    );
+}
+
+test vecUnit {
+    const tolerance = std.math.floatEps(f32);
+
+    try expectSlicesApproxEqual(
+        f32,
+        .abs,
+        &.{ 0.4472136, 0.8944272 },
+        &vecUnit([2]f32{ 1, 2 }),
+        tolerance,
+    );
+
+    try expectSlicesApproxEqual(
+        f32,
+        .abs,
+        &.{ 0.4472136, -0.8944272 },
+        &vecUnit([2]f32{ 1, -2 }),
         tolerance,
     );
 }
