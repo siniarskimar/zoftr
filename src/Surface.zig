@@ -1,4 +1,8 @@
 const std = @import("std");
+const geom = @import("geometry.zig");
+const vec3Cross = @import("linmath.zig").vec3Cross;
+const vecMagSquared = @import("linmath.zig").vecMagSquared;
+const matDet = @import("linmath.zig").matDet;
 
 data: []u8,
 format: PixelFormat,
@@ -10,6 +14,80 @@ const Surface = @This();
 pub fn sample(self: *const @This(), x: u32, y: u32) []u8 {
     const offset: usize = self.width * y + x;
     return self.data[offset * self.format.byteSize() ..][0..self.format.byteSize()];
+}
+
+pub fn drawRect(self: *@This(), rect: geom.Rect([2]u32)) void {
+    for (rect.@"0"[1]..rect.@"1"[1]) |y| {
+        for (rect.@"0"[1]..rect.@"1"[1]) |x| {
+            if (x >= self.width or y >= self.height) continue;
+
+            const pix = self.sample(@intCast(x), @intCast(y));
+            pix[0..3].* = @splat(128);
+        }
+    }
+}
+
+pub fn drawTriangle(self: *@This(), points: [3][2]u32) void {
+    const bounding_box = geom.findBoundingBox([2]u32, &points);
+
+    const V = @Vector(2, i64);
+    const a: V = points[0];
+    const b: V = points[1];
+    const c: V = points[2];
+
+    const ab: V = b - a;
+    const ac: V = c - a;
+    const area: f32 = @abs(matDet([2][2]f32{
+        .{ @floatFromInt(ab[0]), @floatFromInt(ab[1]) },
+        .{ @floatFromInt(ac[0]), @floatFromInt(ac[1]) },
+    }));
+
+    if (std.math.approxEqAbs(f32, area, 0, std.math.floatEps(f32))) {
+        return;
+    }
+
+    for (bounding_box.@"0"[1]..bounding_box.@"1"[1]) |p_y| {
+        for (bounding_box.@"0"[0]..bounding_box.@"1"[0]) |p_x| {
+            const p: V = .{ @intCast(p_x), @intCast(p_y) };
+            const ap = p - a;
+            const cp = p - c;
+            const bc = c - b;
+
+            const a1 = @abs(matDet([2][2]f32{
+                .{ @floatFromInt(ap[0]), @floatFromInt(ap[1]) },
+                .{ @floatFromInt(ab[0]), @floatFromInt(ab[1]) },
+            }));
+            const a2 = @abs(matDet([2][2]f32{
+                .{ @floatFromInt(ap[0]), @floatFromInt(ap[1]) },
+                .{ @floatFromInt(ac[0]), @floatFromInt(ac[1]) },
+            }));
+            const a3 = @abs(matDet([2][2]f32{
+                .{ @floatFromInt(cp[0]), @floatFromInt(cp[1]) },
+                .{ @floatFromInt(bc[0]), @floatFromInt(bc[1]) },
+            }));
+
+            const w1 = a1 / area;
+            const w2 = a2 / area;
+            const w3 = a3 / area;
+
+            if (@abs(w1 + w2 + w3 - 1) > std.math.floatEps(f32)) {
+                continue;
+            }
+
+            const pix = self.sample(@intCast(p_x), @intCast(p_y));
+            pix[0..3].* = @splat(128);
+
+            // const a1: f32 = @abs
+
+            // const w1: f32 = vecMagSquared(vec3Cross(f32, .{}, b: [3]S))
+            // const w2: f32 = 0;
+            // const w3: f32 = 1 - w1 - w2;
+        }
+    }
+}
+
+pub fn clear(self: *@This()) void {
+    @memset(self.data, 0);
 }
 
 pub const PixelFormat = enum {
