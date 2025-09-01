@@ -49,6 +49,64 @@ pub fn typeInfoMat(T: type) struct {
     };
 }
 
+pub fn matDet(mat: anytype) typeInfoMat(@TypeOf(mat)).child {
+    const typeinfo = typeInfoMat(@TypeOf(mat));
+    if (typeinfo.M != typeinfo.N)
+        @compileError(std.fmt.comptimePrint(
+            "matrix {} x {} does not have a determinant",
+            .{ typeinfo.N, typeinfo.M },
+        ));
+
+    return switch (typeinfo.M) {
+        2 => mat[0][0] * mat[1][1] - mat[0][1] * mat[1][0],
+        3 => blk: {
+            const c0 = mat[1][1] * mat[2][2] - mat[1][2] * mat[2][1];
+            const c1 = mat[1][0] * mat[2][2] - mat[1][2] * mat[2][0];
+            const c2 = mat[1][0] * mat[2][1] - mat[1][1] * mat[2][0];
+
+            break :blk mat[0][0] * c0 - mat[0][1] * c1 + mat[0][2] * c2;
+        },
+        else => @compileError("unsupported"),
+    };
+}
+
+test matDet {
+    // square 1 x 1
+    try std.testing.expectApproxEqAbs(
+        1.0,
+        matDet([2][2]f32{ .{ 1, 0 }, .{ 0, 1 } }),
+        std.math.floatEps(f32),
+    );
+
+    // diamond square 1 x 1
+    try std.testing.expectApproxEqAbs(
+        1.0,
+        matDet([2][2]f32{ vec2Dir(f32, std.math.pi / 4.0 * 3.0), vec2Dir(f32, std.math.pi / 4.0) }),
+        std.math.floatEps(f32),
+    );
+
+    // zero row
+    try std.testing.expectApproxEqAbs(
+        0.0,
+        matDet([3][3]f32{ .{ 1, 2, 3 }, .{ 0, 0, 0 }, .{ 7, 8, 9 } }),
+        std.math.floatEps(f32),
+    );
+
+    // zero column
+    try std.testing.expectApproxEqAbs(
+        0.0,
+        matDet([3][3]f32{ .{ 1, 2, 0 }, .{ 4, 5, 0 }, .{ 7, 8, 0 } }),
+        std.math.floatEps(f32),
+    );
+
+    // cube 1 x 1 x 1
+    try std.testing.expectApproxEqAbs(
+        1.0,
+        matDet([3][3]f32{ .{ 1, 0, 0 }, .{ 0, 1, 0 }, .{ 0, 0, 1 } }),
+        std.math.floatEps(f32),
+    );
+}
+
 /// Compute dot product of vectors.
 /// Adapts to whether a vector is @Vector or an array based on type.
 pub fn vecDot(a: anytype, b: @TypeOf(a)) typeInfoVec(@TypeOf(a)).child {
