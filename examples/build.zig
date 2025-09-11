@@ -4,26 +4,49 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
+    const check_step = b.step("check", "Build without emitting binaries");
+
     const zoftr_dep = b.dependency("zoftr", .{
         .target = target,
         .optimize = optimize,
     });
     const zoftr_mod = zoftr_dep.module("zoftr");
 
-    const shapes_exe = b.addExecutable(.{
-        .name = "example-shapes",
-        .root_module = b.createModule(.{
-            .root_source_file = b.path("shapes/main.zig"),
-            .target = target,
-            .optimize = optimize,
-        }),
+    _ = addExample(b, check_step, "shapes", .{
+        .root_source_file = b.path("shapes/main.zig"),
+        .target = target,
+        .optimize = optimize,
+        .imports = &.{
+            .{ .name = "zoftr", .module = zoftr_mod },
+        },
     });
-    shapes_exe.root_module.addImport("zoftr", zoftr_mod);
-    b.installArtifact(shapes_exe);
 
-    const check_step = b.step("check", "Build without emitting binaries");
+    _ = addExample(b, check_step, "checkerboard", .{
+        .root_source_file = b.path("checkerboard/main.zig"),
+        .target = target,
+        .optimize = optimize,
+        .imports = &.{
+            .{ .name = "zoftr", .module = zoftr_mod },
+        },
+    });
+}
+
+pub fn addExample(
+    b: *std.Build,
+    check_step: *std.Build.Step,
+    name: []const u8,
+    options: std.Build.Module.CreateOptions,
+) *std.Build.Step.Compile {
+    const exe = b.addExecutable(.{
+        .name = name,
+        .root_module = b.createModule(options),
+    });
+    b.installArtifact(exe);
+
     check_step.dependOn(&b.addExecutable(.{
-        .name = "check-shapes",
-        .root_module = shapes_exe.root_module,
+        .name = b.fmt("check-{s}", .{name}),
+        .root_module = exe.root_module,
     }).step);
+
+    return exe;
 }

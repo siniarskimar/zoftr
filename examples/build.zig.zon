@@ -5,6 +5,10 @@
     .minimum_zig_version = "0.15.0-dev.921+97ecb6c55",
     .dependencies = .{
         .zoftr = .{ .path = "../" },
+        .sdl = .{
+            .url = "git+https://github.com/castholm/SDL#b1913e7c31ad72ecfd3ab04aeac387027754cfaf",
+            .hash = "sdl-0.3.0+3.2.22-7uIn9Pg3fwGG2IyIOPxxOSVe-75nUng9clt7tXGFLzMr",
+        },
     },
     .paths = .{
         "build.zig",
