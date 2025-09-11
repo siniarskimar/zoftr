@@ -5,4 +5,5 @@ pub const bmp = @import("bmp.zig");
 test {
     _ = linmath;
     _ = Surface;
+    _ = bmp;
 }
